@@ -1,7 +1,7 @@
 //Original t, increments one per sample. The reverb, harmonifier, hihat, and snare need this.
 T = t,
 
-t *= r8 = 8 / 48,
+t *= r8 = 8 / 52,
 
 
 //seq = ( arr, spd, t2=t ) => arr[ (t2 >> spd) % arr.length ],
@@ -240,12 +240,7 @@ garfSeq = [-.3,-.2,9,-5.1,-5,-5,9,-5,0,-6,10,-6,-2,-3,-5,-10, -10,-10,11,-9,-9,-
 0),
 
 
-garf=x=>(sin(PI*(x/32 + sin(PI/32*x/(t?t:1)*mseq(garfSeq,11))))+sin(PI*x/128))*(-t>>4&63)/8,
+garf=x=>(sin(PI*(x/32 + sin(PI/32*x/(t?t:1)*mseq(garfSeq,11))))+sin(PI*x/128))*(-t>>4&63)**2/99,
 
 
-//lp(garf(t)+garf(t*2)+garf(t*4)+garf(t*8)+garf(t*16),.9)/2
-
-
-//lp(min(1,max(-1,garf(t)+garf(t*2)+garf(t*4)+garf(t*8)+garf(t*16))),.9)*.9
-
-lp(cl(garf(t)+garf(t*2)+garf(t*4)+garf(t*8)+garf(t*16)),.6)*.9
+lp(lp2(cl(hp(garf(t)+garf(t*2)+garf(t*4)+garf(t*8)+garf(t*16),.04)),.4),.7)*.9
