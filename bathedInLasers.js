@@ -266,6 +266,8 @@ l2b = r(1,[
 
 lv = "11000",
 
+ld = "40810",
+
 l1 = r(1,r(2,[l1a,l1b])),
 l2 = r(1,[l1a,l1b,l1a,l2b,r(96,0)]),
 
@@ -283,10 +285,10 @@ p = ( (F[I++] += 1) > 9 ? mseq(pch,14,t,1) / t: F[I++] = t), //desync protection
 //p = 2 ** (seq(pch,16,t,1)/12),
 
 garf=x=>(sin(PI*(x/32 + sin(PI/32*x/(t?t:1)*(mseq(garfSeq,11)))))+sin(PI*x/128))*(-t>>4&63)**2/99,
-og=(x,pn)=>garf(x)+garf(x*2)+garf(x*4)+garf(x*8)+garf(x*16)*(1+pn)/2,
+og=(x,pn)=>garf(x)+garf(x*2)+garf(x*4)+garf(x*8)+garf(x*16)+garf(x*32)*pn/2,
 
 sw=x=>x%1+x*.99%1+x*1.01%1,
-SW=pn=>hp(sw(mseq(pn?l1:l2,11,t,5-pn)*(6+pn/8)/97),.1)*.3*seq(lv,16),
+SW=pn=>hp(sw(mseq(pn?l1:l2,11,t,4-pn)*(6+pn/8)/97),.1)*.3*seq(lv,16),
 
 //BS1 = x => x/4&x/16&x/32&4,
 BS1 = x => x&0 + x&192,
@@ -302,9 +304,9 @@ H = bt([h],10,20,1),
 
 Mix = pan => (
 
-BS(mseq(bas,10))/1.5 + SW(pan) + K + SN + H +
+BS(mseq(bas,10))/1.3 + SW(pan) + K + SN + H +
 
-lp(lp2(cl(hp(og(p*t,pan),.02)),.7),.7)*.2
+lp(lp2(cl(hp(og(p*t,pan),.02)*seq(ld,16,t,1)),.7),.7)*.2
 
 ),
 
