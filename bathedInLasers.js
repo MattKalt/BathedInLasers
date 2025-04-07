@@ -67,9 +67,9 @@ Adding / &ing a breakbeat with a melody can also add attack to the notes of the 
 bt = beat = (arr, spd, vel = 2e4, vol = 1, t2 = t, oct = 0) =>
 	m(vel / (t2 & (2 ** (spd - oct) / seq( arr, spd ) ) - 1), vol),
 
-ls = sin(T / 9 & T >> 5), // long snare
+s = sin(T / 9 & T >> 5), // long snare
 //s = sin(t>>5), // acoustic-sounding grungy snare
-s = seq( [ls, 0], 9), // Snare
+//s = seq( [ls, 0], 9), // Snare
 h = 1 & T * 441/480, // long Hihat
 h = seq( [h,h,h,0], 8), //quieter, faster attack
 
@@ -215,8 +215,6 @@ sy = synth = (melody, velTrack, speed, x, y, ...z)=>
 //saw 2 sine
 s2s = sinify = x => sin( x*PI/64 ) * 126 + 128,
 
-v = vibrato = sin(T>>10)/2,
-
 
 //replaces wanted char with '1' and everything else with '0'
 on = (str, wanted) =>
@@ -235,12 +233,60 @@ t || (
 
 //garfSeq = [0,0,5,4,4,4,5,0,-12,-5,10,-5,-2,-3,-5,-10, -10,-10,12,-10,-10,-10,12,-10,-10,4,1,2,3,4,5,6],
 
-garfSeq = [-.3,-.2,9,-5.1,-5,-5,9,-5,0,-6,10,-6,-2,-3,-5,-10, -10,-10,11,-9,-9,-9,8,-8,-8,4,1,2,3,4,5,6],
+//garfSeq = [-.3,-.2,9,-5.1,-5,-5,9,-5,0,-6,10,-6,-2,-3,-5,-10, -10,-10,11,-9,-9,-9,8,-8,-8,4,1,2,3,4,5,6],
+
+pch = [0,0,.7,1],
+
+garfSeq = tra( [11.7, 11.8, 21, 6.9, 7, 7, 21, 7, 12, 6, 22, 6, 10, 9, 7, 2, 2, 2, 23, 3, 3, 3, 20, 4, 4, 16, 13, 14, 15, 16, 17, 18], -12),
+
+//garfSeq = [-12],
+
+bas = r(1,[
+	[12,12,12,11,10,9,8,7,6,5,4,3,2,1], //14 beats
+	r(16, 0),
+	r(16, 8.3),
+	r(12, 1),
+	r(6, 6)
+]),
+
+drk1 = "10000000", drk2 = "10000010", drk3 = "00010000", drk4 = "10000100",
+drs1 = "00001000", drs2 = "00001000", drs3 = "00001000", drs4 = "00001011",
+
+drk = drk1 + j(r(3,[sp(drk2),sp(drk3)])) + drk4,
+drs = drs1 + j(r(3,[sp(drs2),sp(drs3)])) + drs4,
 
 0),
 
+//----------------- MIXER -----------
 
-garf=x=>(sin(PI*(x/32 + sin(PI/32*x/(t?t:1)*mseq(garfSeq,11))))+sin(PI*x/128))*(-t>>4&63)**2/99,
+p = ( (F[I++] += 1) > 2 ? mseq(pch,14,t,1) : F[I++] = t), //desync protection
+
+//p = 2 ** (seq(pch,16,t,1)/12),
+
+garf=x=>(sin(PI*(x/32 + sin(PI/32*x/(t?t:1)*(mseq(garfSeq,11)))))+sin(PI*x/128))*(-t>>4&63)**2/99,
+og=x=>garf(x)+garf(x*2)+garf(x*4)+garf(x*8)+garf(x*16),
+
+//BS1 = x => x/4&x/16&x/32&4,
+
+BS1 = x => x&0 + x&192,
+
+//BS = x => BS1(x)/20 + hp(BS1(x),.03)*((t>>6&8)>6?0:8),
+//BS = x => cl((BS1(x)/2 + hp(BS1(x),.1)*(-t>>6&8))/256)*256,
+BS = x => BS1(x)/2 + hp(BS1(x),.1)*(-t>>6&8),
+
+K = (sin(sqrt(6*(t%1024)))*127+(t/2&127))*bt(drk,10,1)**(1/8),
+//SN = cl(bt([s],10)*seq(drs,10)/8),
+SN = bt([s],9)*bt(drs,10,2),
+H = bt([h],10,32),
+
+cl(
+
+BS(mseq(bas,10))/48 + K/9 + SN + H +
+
+lp(lp2(cl(hp(og(p),.02)),.7),.7)*.4
+
+)
 
 
-lp(lp2(cl(hp(garf(t)+garf(t*2)+garf(t*4)+garf(t*8)+garf(t*16),.04)),.4),.7)*.9
+//a=()=>{throw(I)},a() //Determine amount of memory to initialize
+//,a=()=>{throw( (F[I++] += 1)) < 2 },a() //debug
