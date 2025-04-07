@@ -32,7 +32,7 @@ j = (arr, sep='') => arr.join( sep ),
 tra = transpose = (x, amt) => Array.isArray(x)? x.map( e => e + amt ) : j( sp(x).map( e => e + amt ) ),
 
 //pretty much deprecated but used in bt()
-m = mix = (x, vol=1, dist=0) => ( ( x * vol * ( 1 + dist ) ) % ( 256 * vol ) ) || 0,
+m = (x, vol=1, dist=0) => ( ( x * vol * ( 1 + dist ) ) % ( 256 * vol ) ) || 0,
 
 /*
 	F is the FX stack, stores memory for use in effects
@@ -233,19 +233,24 @@ t || (
 
 pch = [0,0,.7,1],
 
-garfSeq = tra( [11.7, 11.8, 21, 6.9, 7, 7, 21, 7, 12, 6, 22, 6, 10, 9, 7, 2, 2, 2, 23, 3, 3, 3, 20, 4, 4, 16, 13, 14, 15, 16, 17, 18], -12),
-//garfSeq = [0],
+//garfSeq = tra( [11.7, 11.8, 21, 6.9, 7, 7, 21, 7, 12, 6, 22, 6, 10, 9, 7, 2, 2, 2, 23, 3, 3, 3, 20, 4, 4, 16, 13, 14, 15, 16, 17, 18], -12),
+garfSeq = [-.1],
 
 bas = r(1,[
 	[12,12,12,11,10,9,8,7,6,5,4,3,2,1], //14 beats
 	r(16, 0),
-	r(16, 8.3),
+	r(16, 8),
 	r(12, 1),
 	r(6, 6)
 ]),
 
 //     0123456789abcdef0123456789abcdef
-bsv = "11010111101011110101101101101011",
+//bsv = "11010111101011110101101101101011",
+bsv = "1",
+
+l1 = r(1,[
+	0,0,0,1,1,1,1,4, r(7,4),3, r(7,3),1, r(8,1)
+]),
 
 drk1 = "10000000", drk2 = "10000010", drk3 = "00010000", drk4 = "10000100",
 drs1 = "00001000", drs2 = "00001000", drs3 = "00001000", drs4 = "00001011",
@@ -257,17 +262,17 @@ drs = drs1 + j(r(3,[sp(drs2),sp(drs3)])) + drs4,
 
 //----------------- MIXER -----------
 
-p = ( (F[I++] += 1) > 2 ? mseq(pch,14,t,1) : F[I++] = t), //desync protection
-
+p = ( (F[I++] += 1) > 9 ? mseq(pch,14,t,1) / t: F[I++] = t), //desync protection
 //p = 2 ** (seq(pch,16,t,1)/12),
 
 garf=x=>(sin(PI*(x/32 + sin(PI/32*x/(t?t:1)*(mseq(garfSeq,11)))))+sin(PI*x/128))*(-t>>4&63)**2/99,
-og=x=>garf(x)+garf(x*2)+garf(x*4)+garf(x*8)+garf(x*16),
+og=(x,pn)=>garf(x)+garf(x*2)+garf(x*4)+garf(x*8)+garf(x*16)*pn,
+
+sw=x=>x%1+x*.99%1+x*1.01%1,
+SW=pn=>sw(mseq(l1,11,t,2)*(6+pn/8*p)/96)*.3,
 
 //BS1 = x => x/4&x/16&x/32&4,
-
 BS1 = x => x&0 + x&192,
-
 //BS = x => BS1(x)/20 + hp(BS1(x),.03)*((t>>6&8)>6?0:8),
 //BS = x => cl((BS1(x)/2 + hp(BS1(x),.1)*(-t>>6&8))/256)*256,
 BS = x => cl(((BS1(x)/2 + hp(BS1(x),.1)*(-t>>6&8))%99)/64) * seq(bsv,10),
@@ -278,14 +283,16 @@ K = cl(((sin(sqrt(6*(t%1024)))*127+(t/2&127))*bt(drk,10,1)**(1/8))/16),
 SN = bt([s],9)*bt(drs,10,1),
 H = bt([h],10,20,1),
 
-cl(
+Mix = pan => (
 
-BS(mseq(bas,10))/1.5 + K + SN + H +
+BS(mseq(bas,10))/1.5 + SW(pan) + K + SN + H +
 
-lp(lp2(cl(hp(og(p),.02)),.7),.7)*.2
+lp(lp2(cl(hp(og(p*t,pan),.02)),.7),.7)*.2
 
-)
+),
 
+Mas = p => cl(Mix(p)),
+
+[Mas(0),Mas(1)]
 
 //a=()=>{throw(I)},a() //Determine amount of memory to initialize
-//,a=()=>{throw( (F[I++] += 1)) < 2 },a() //debug
