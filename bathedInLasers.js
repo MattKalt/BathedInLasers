@@ -266,10 +266,14 @@ l2b = r(1,[
 
 lv = "11000",
 
-ld = "40810",
+ld = "61921",
 
 l1 = r(1,r(2,[l1a,l1b])),
 l2 = r(1,[l1a,l1b,l1a,l2b,r(96,0)]),
+
+l3 = r(1,[
+	10,10,10,8, 8,8,8,7, 7,7,7,7, 5,7,7,8, 8,8,8,8, 7,8,8,10, 10,10,10,10, 8,10,10,10.3,
+]),
 
 drk1 = "10000000", drk2 = "10000010", drk3 = "00010000", drk4 = "11000100",
 drs1 = "00001000", drs2 = "00001000", drs3 = "00001000", drs4 = "00211011",
@@ -286,9 +290,14 @@ p = ( (F[I++] += 1) > 9 ? mseq(pch,14,t,1) / t: F[I++] = t), //desync protection
 
 garf=x=>(sin(PI*(x/32 + sin(PI/32*x/(t?t:1)*(mseq(garfSeq,11)))))+sin(PI*x/128))*(-t>>4&63)**2/99,
 og=(x,pn)=>garf(x)+garf(x*2)+garf(x*4)+garf(x*8)+garf(x*16)+garf(x*32)*pn/2,
+G1=pn=>lp(lp2(cl(hp(og(p*t,pn),.02)*(seq(ld,16,t,1)-1)),.7),.7),
+G2=pn=>lp2(cl(hp(cl(lp(og(p*t,pn),.4)*seq(ld,16,t,1)/8),.2)),.1),
 
 sw=x=>x%1+x*.99%1+x*1.01%1,
-SW=pn=>hp(sw(mseq(pn?l1:l2,11,t,4-pn)*(6+pn/8)/97),.1)*.3*seq(lv,16),
+SW=pn=>hp(sw(mseq(pn?l1:l2,11,t,4-pn)*(6+pn/8)/97),.2)*.4*seq(lv,16),
+
+l3m=pn=>mseq(l3,11,t,pn)|mseq(l3,11,t,pn)/2,
+L3=pn=>cl(sw(l3m(pn)*(6+pn/8)/97)*seq(lv,16)*64)*.1,
 
 //BS1 = x => x/4&x/16&x/32&4,
 BS1 = x => x&0 + x&192,
@@ -304,9 +313,11 @@ H = bt([h],10,20,1),
 
 Mix = pan => (
 
-BS(mseq(bas,10))/1.3 + SW(pan) + K + SN + H +
+BS(mseq(bas,10))/1.3 + SW(pan) + L3(pan)*.7 + hp(L3(pan),.5) + K + SN + H +
 
-lp(lp2(cl(hp(og(p*t,pan),.02)*seq(ld,16,t,1)),.7),.7)*.2
+G1(pan) * (.1 + pan/8) + G2(pan) * (1.3 - pan/2)
+//lp(lp2(cl(hp(og(p*t,pan),.02)*seq(ld,16,t,1)),.7),.7)*.2
+//lp2(cl(hp(cl(lp(og(p*t,pan),.4)*seq(ld,16,t,1)/8),.2)),.1)
 
 ),
 
