@@ -71,7 +71,7 @@ s = sin(T / 9 & T >> 5), // long snare
 //s = sin(t>>5), // acoustic-sounding grungy snare
 //s = seq( [ls, 0], 9), // Snare
 h = 1 & T * 441/480, // long Hihat
-h = seq( [h,h,h,0], 8), //quieter, faster attack
+//h = seq( [h,h,h,0], 8), //quieter, faster attack
 
 //bad lopass (turns things into triangles rather than sins) but good for compressor
 lp2 = lopass = (input, freq, bias=1) => // f ~= frequency, but not 1:1
@@ -199,6 +199,8 @@ drs1 = "00001000", drs2 = "00001000", drs3 = "00001000", drs4 = "00211011",
 drk = drk1 + j(r(3,[sp(drk2),sp(drk3)])) + drk4,
 drs = drs1 + j(r(3,[sp(drs2),sp(drs3)])) + drs4,
 
+hhv = "33002",
+
 0),
 
 //----------------- MIXER -----------
@@ -217,7 +219,6 @@ G2=pn=>lp2(cl(hp(cl(lp(og(p*t,pn),.5)*(seq(ld,16,t,1)+.2)/9),.2)),.1),
 
 sw=x=>x%1+x*.99%1+x*1.01%1,
 SW=pn=>hp(sw(mseq(pn?l1:l2,11,t,4-pn)*(6+pn/8)/97),.25)*.6*seq(lv,16),
-//SW=pn=>hp(sw(mseq(pn?l1:l2,11,t,4-pn)*(6+pn/8)/97),.3)*.5*seq(lv,16),
 
 l3m=pn=>mseq(l3,11,t,pn)|mseq(l3,11,t,pn)/2,
 L3=pn=>cl(sw(l3m(pn)*(6+pn/8)/97)*seq(lv,16)*64)*.1,
@@ -227,7 +228,7 @@ BS = x => cl(((BS1(x)/2 + hp(BS1(x),.1)*(-t>>6&8))%99)/64) * seq(bsv,10),
 
 K = cl(((sin(sqrt(6*(t%1024)))*127+(t/2&127))*bt(drk,10,1)**(1/8))/16),
 SN = bt([s],9)*bt(drs,10,1),
-H = bt([h],10,20,1),
+H = bt([h],10,16+2*seq(hhv,16),1),
 
 Mix = pan => (
 
