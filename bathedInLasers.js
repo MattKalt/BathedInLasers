@@ -73,39 +73,6 @@ s = sin(T / 9 & T >> 5), // long snare
 h = 1 & T * 441/480, // long Hihat
 h = seq( [h,h,h,0], 8), //quieter, faster attack
 
-/*
-	Stereo delay/chorus effect (Better version in Motherlode V2)
-	single input, outputs an array size 2
-	t2 and vibratospeed must have the same length (arbitrary)
-	requires old lp(), new hp(), lim2(), r(), and slidy seq() to function
-	partly inspired by Feeshbread's Dead Data echo
-*/
-
-rvs = reverbStereo = ( input, len = 16e3, vibratoSpeed = [91,83,77,67,5], dry = .2, wet = .8, dsp = 3, lerpx=4, highpass=.1, lowpass = .5, compAtk = 9, compRel = 1, compThresh = 99, vibratoDepth = 299, t2 ) => (
-	vcs = vibratoSpeed.length,
-	t2 ??= r(vcs, T ), //array of all T the same size as vibratoSpeed[], could also be T/2 if specified in args
-	o=[],//out=[0,0] //can reuse o
-	t2.map( (t2val,i) => (
-		t2val += vibratoDepth*2 +  vibratoDepth * sin(T*vibratoSpeed[i]/3e6),
-		o[i] = hp(
-			input * dry/2 + wet*300/compThresh/vcs * seq(
-				F, 0, I + vcs*2-i + ( t2val % len ) / dsp, lerpx
-				//F, 0, I + ( t2val % len ) / dsp, lerpx //glitchy
-			) || 0
-			, highpass
-		)
-		//,o[i] = lim2(o[i],compAtk,compRel,compThresh) //lim()ing here creates more feedback
-	)),
-	F[ I + vcs + 1 + ( (T % len) / dsp )|0 ] = lp(
-		o.reduce((a,e,i)=> a=lim2(
-			a+e, compAtk,compRel,compThresh/vcs*(1+i/2)
-		)
-	), lowpass ),
-	I += 0|(len / dsp),
-	o.map((e,i)=>o[i%2]+=e),o //first 2 voices will be double volume
-	//o.map((e,i)=>out[i%2]+=e),out
-),
-
 //bad lopass (turns things into triangles rather than sins) but good for compressor
 lp2 = lopass = (input, freq, bias=1) => // f ~= frequency, but not 1:1
 	// F[I] is the value of the last sample
@@ -168,54 +135,6 @@ lim = limiter = (input, speed = .1, lookahead = 512, wet = 1, thresh = 9, bias =
 cl = clip = x => min(1,max(-1,x-lp(x,.001))),
 
 
-//XORs the input with its harmonics, controlled by the bits of a number ('tone')
-//pretends it uses a wavetable, but doesn't
-hm = harmonify = (x,tone, waveTableSize = 8) => (
-	//waveTableSize *= 64 * T / t | 0,
-	waveTableSize *= 64 / r8 | 0, //swing-proofed
-	r(8).reduce((o,e,i)=>(
-		y = (i+1)/2 * x,
-		o ^ ( ( 1 & (tone>>i) ) * (i+1)/2 * x ) % waveTableSize
-		//o ^ ( ( 1 & (tone>>i) ) * y ) % waveTableSize ^ ( abs( m( tone>>(i+8) * y ) - 128 ) * 2 ) % waveTableSize
-		),0
-	)
-),
-
-
-/*
-	Version 1 of my Synth
-A new version has been developed, but this is the one from GAv2 that I have a lot of tones for
-
-Basically just treat this like a black box and fiddle with the knobs at random
-For a more detailed exmplanation:
-	X, and the First 2 hexes of y, are the fun surprise knobs :)
-		Small changes in these values completely change the tone (most of the time)
-	The next 2 hexes of y control the harmonifier
-	The next hex controls the thump/click/noise of the attack
-	The next hex controls the decay
-	The next 2 hexes control the lowpass
-*/
-sy = synth = (melody, velTrack, speed, x, y, ...z)=>
-	lp2(
-		min(
-			m(
-				hm(
-					beat( [x], 10, 6e4, 1, melody, .02* ( (y>>24) & 255 ) )
-				, ( y>>16 ) & 255, ...z
-				)
-			, .9,1
-			)
-			+ beat( velTrack, speed, 1e3 * ( (y>>12) & 15) )
-		, beat( velTrack, speed, 1, 2e4 * ( (y>>8) & 15 ) )
-		)
-	, y&255
-	),
-
-
-//saw 2 sine
-s2s = sinify = x => sin( x*PI/64 ) * 126 + 128,
-
-
 //replaces wanted char with '1' and everything else with '0'
 on = (str, wanted) =>
 	str.replaceAll( RegExp( '[^' + wanted + ']', 'g' ), '0' ).replaceAll( RegExp( wanted, 'g'), '1' ),
@@ -247,8 +166,7 @@ bas = r(1,[
 	r(6, 6)
 ]),
 
-//      0123456789abcdef0123456789abcdef
-bsv2 = "11010111101011110101101101101011",
+bsv2 = "11010111101011110101101101101111",
 
 bsv = j(r(1,[r(128,1),r(128,0),r(2,sp(bsv2))])),
 
@@ -266,7 +184,7 @@ l2b = r(1,[
 
 lv = "11000",
 
-ld = "61921",
+ld = "40810",
 
 l1 = r(1,r(2,[l1a,l1b])),
 l2 = r(1,[l1a,l1b,l1a,l2b,r(96,0)]),
@@ -285,39 +203,37 @@ drs = drs1 + j(r(3,[sp(drs2),sp(drs3)])) + drs4,
 
 //----------------- MIXER -----------
 
-p = ( (F[I++] += 1) > 9 ? mseq(pch,14,t,1) / t: F[I++] = t), //desync protection
-//p = 2 ** (seq(pch,16,t,1)/12),
+
+//T==(((4<<16)/r8)|0)&&(F[I+1]+=3e8),
+//T==(((6<<16)/r8)|0)&&(F[I+1]-=6e8),
+
+
+p = ( (F[I++] += 1) > 9 ? mseq(pch,14,t,1) / t: F[I++] = t), //desync protection, TODO: make better by doing integral
 
 garf=x=>(sin(PI*(x/32 + sin(PI/32*x/(t?t:1)*(mseq(garfSeq,11)))))+sin(PI*x/128))*(-t>>4&63)**2/99,
 og=(x,pn)=>garf(x)+garf(x*2)+garf(x*4)+garf(x*8)+garf(x*16)+garf(x*32)*pn/2,
-G1=pn=>lp(lp2(cl(hp(og(p*t,pn),.02)*(seq(ld,16,t,1)-1)),.7),.7),
-G2=pn=>lp2(cl(hp(cl(lp(og(p*t,pn),.4)*seq(ld,16,t,1)/8),.2)),.1),
+G1=pn=>lp(lp2(cl(hp(og(p*t,1-pn),.02)*seq(ld,16,t,1)),.7),.7),
+G2=pn=>lp2(cl(hp(cl(lp(og(p*t,pn),.5)*(seq(ld,16,t,1)+.2)/9),.2)),.1),
 
 sw=x=>x%1+x*.99%1+x*1.01%1,
-SW=pn=>hp(sw(mseq(pn?l1:l2,11,t,4-pn)*(6+pn/8)/97),.2)*.4*seq(lv,16),
+SW=pn=>hp(sw(mseq(pn?l1:l2,11,t,4-pn)*(6+pn/8)/97),.25)*.6*seq(lv,16),
+//SW=pn=>hp(sw(mseq(pn?l1:l2,11,t,4-pn)*(6+pn/8)/97),.3)*.5*seq(lv,16),
 
 l3m=pn=>mseq(l3,11,t,pn)|mseq(l3,11,t,pn)/2,
 L3=pn=>cl(sw(l3m(pn)*(6+pn/8)/97)*seq(lv,16)*64)*.1,
 
-//BS1 = x => x/4&x/16&x/32&4,
 BS1 = x => x&0 + x&192,
-//BS = x => BS1(x)/20 + hp(BS1(x),.03)*((t>>6&8)>6?0:8),
-//BS = x => cl((BS1(x)/2 + hp(BS1(x),.1)*(-t>>6&8))/256)*256,
 BS = x => cl(((BS1(x)/2 + hp(BS1(x),.1)*(-t>>6&8))%99)/64) * seq(bsv,10),
-//BS = x => BS1(x)/2 + hp(BS1(x),.1)*(-t>>6&8),
 
 K = cl(((sin(sqrt(6*(t%1024)))*127+(t/2&127))*bt(drk,10,1)**(1/8))/16),
-//SN = cl(bt([s],10)*seq(drs,10)/8),
 SN = bt([s],9)*bt(drs,10,1),
 H = bt([h],10,20,1),
 
 Mix = pan => (
 
-BS(mseq(bas,10))/1.3 + SW(pan) + L3(pan)*.7 + hp(L3(pan),.5) + K + SN + H +
+BS(mseq(bas,10))*.75 + SW(pan) + L3(pan)*.8 + hp(L3(pan),.4)*2 + K + SN + H +
 
-G1(pan) * (.1 + pan/8) + G2(pan) * (1.3 - pan/2)
-//lp(lp2(cl(hp(og(p*t,pan),.02)*seq(ld,16,t,1)),.7),.7)*.2
-//lp2(cl(hp(cl(lp(og(p*t,pan),.4)*seq(ld,16,t,1)/8),.2)),.1)
+G1(pan) * (.1 + pan/8) + G2(pan) * (.7 - pan/2)
 
 ),
 
