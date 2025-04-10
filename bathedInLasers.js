@@ -228,7 +228,7 @@ p = ( (F[I++] += 1) > 9 ? t>>15>1 ? mseq(pch,14,t,1) / t: mseq([0],9) / t: F[I++
 garf=x=>(sin(PI*(x/32 + sin(PI/32*x/(t?t:1)*(mseq(garfSeq,11)))))+sin(PI*x/128))*(-t>>4&63)**2/99,
 og=(x,pn)=>garf(x)+garf(x*2)+garf(x*4)+garf(x*8)+garf(x*16)+garf(x*32)*pn/2,
 G1=pn=>lp(lp2(cl(hp(og(p*t,1-pn),.02)*seq(ld,16,t,1)),.7),min(t/1e5,.7)),
-G2=pn=>lp2(cl(hp(cl(lp(og(p*t,pn),.5)*(seq(ld,16,t,1)+.2)/9),.2)),min(t/1e6,.1)),
+G2=pn=>lp2(cl(hp(cl(lp(og(p*t,pn),.5)*(seq(ld,16,t,1)+.2)/9),.2)),min(t/2e6,.1)),
 
 sw=x=>x%1+x*.99%1+x*1.01%1,
 SW=(pn,t)=>hp(sw(mseq(pn?l1:l2,10,t,t>>13==7?0:4-pn)*(6+pn/8)/97),.25)*.6*seq(lv,16),
@@ -243,13 +243,13 @@ L3=pn=>cl(sw(l3m(pn)*(6+pn/8)/97)*seq(lv,16)*64)*(t>>15>1?.1:0),
 BS1 = x => x&0 + x&192,
 BS = x => cl(((BS1(x)/2 + hp(BS1(x),.1)*(-t>>6&8))%99)/64) * seq(bsv,10)/8,
 
-K = cl(((sin(sqrt(6*(t%1024)))*127+(t/2&127))*bt(drk,10,1)**.125)/16)*(t>>9>72?1:0),
-SN = bt([s],9)*bt(drs,10,2,.4)*(t>>9>63?1:0),
+K = cl(((sin(sqrt(6*(t%1024)))*127+(t/2&127))*bt(drk,10,1)**.125)/16)*(t>>9>73?1:0),
+SN = bt([s],9)*bt(drs,10,2,.4)*(t>>9>95?1:0),
 H = bt([h],10,3*seq(hhv,16),1),
 
 Mix = pan => (
 
-BS(mseq(bas,10))*.6 + SWs(pan) + L3(pan)*.9 + hp(L3(pan),.4)*2 + K + SN + H +
+BS(mseq(bas,10))*.6 + SWs(pan) + L3(pan) + hp(L3(pan),.4)*2 + K + SN + H +
 
 G1(pan) * (.05 + pan/8) + G2(pan) * (.6 - pan/2)
 
