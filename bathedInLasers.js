@@ -255,7 +255,7 @@ G1(pan) * (.05 + pan/8) + G2(pan) * (.6 - pan/2)
 
 ),
 
-Mas = p => cl(Mix(p)),
+Mas = p => t>>10==64?K*(1+p):cl(Mix(p)),
 
 [Mas(0),Mas(1)]
 
